@@ -51,7 +51,7 @@ class BFM(object):
 def load_expbasis():
     # load expression basis
     n_vertex = 53215
-    exp_bin = open(r'BFM\Exp_Pca.bin', 'rb')
+    exp_bin = open(r'BFM/Exp_Pca.bin', 'rb')
     exp_dim = array('i')
     exp_dim.fromfile(exp_bin, 1)
     expMU = array('f')
@@ -63,14 +63,14 @@ def load_expbasis():
     expPC = np.reshape(expPC, [exp_dim[0], -1])
     expPC = np.transpose(expPC)
 
-    expEV = np.loadtxt(r'BFM\std_exp.txt')
+    expEV = np.loadtxt(r'BFM/std_exp.txt')
 
     return expPC, expEV
 
 
 def transfer_BFM09():
     # tranfer original BFM2009 to target face model
-    original_BFM = loadmat(r'BFM\01_MorphableModel.mat')
+    original_BFM = loadmat(r'BFM/01_MorphableModel.mat')
     shapePC = original_BFM['shapePC']   # shape basis
     shapeEV = original_BFM['shapeEV']   # corresponding eigen values
     shapeMU = original_BFM['shapeMU']   # mean face
