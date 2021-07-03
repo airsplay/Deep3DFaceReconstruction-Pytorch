@@ -11,6 +11,7 @@ from pytorch3d.renderer import (
 )
 import torch
 
+
 def render_img(face_shape, face_color, facemodel, image_size=224, extrinsic=None, intrinsic=None, device='cuda:0'):
     '''
         ref: https://github.com/facebookresearch/pytorch3d/issues/184
@@ -21,12 +22,13 @@ def render_img(face_shape, face_color, facemodel, image_size=224, extrinsic=None
             facemodel: contains `tri` (triangles[70789, 3], index start from 1)
             extrinsic: (R, T); R float tensor of [B, 3, 3]; T float tensor of [B, 3]
     '''
+    batch_size = face_shape.shape[0]
 
     face_color = TexturesVertex(verts_features=face_color.to(device))
     face_buf = torch.from_numpy(facemodel.tri - 1)  # index start from 1
-    face_idx = face_buf.unsqueeze(0)
+    face_idx = face_buf.unsqueeze(0).repeat(batch_size, 1, 1)
 
-    mesh = Meshes(face_shape.to(device), face_idx.to(device), face_color)
+    meshes = Meshes(face_shape.to(device), face_idx.to(device), face_color)
 
     #R = torch.eye(3).view(1, 3, 3).to(device)
     #R[0, 0, 0] *= -1.0
@@ -76,8 +78,8 @@ def render_img(face_shape, face_color, facemodel, image_size=224, extrinsic=None
             blend_params=blend_params
         )
     )
-    images = renderer(mesh)
-    
+    images = renderer(meshes)
+
     # TODO: There would be no gradient if clamp works.
     images = torch.clamp(images, 0.0, 1.0)
 
