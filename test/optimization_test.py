@@ -33,9 +33,11 @@ def recon():
     ]
     for coef in optimized_coefs:
         coef.requires_grad = True
-    optim = Adam(optimized_coefs, lr=1e-1)
+    optim = Adam(optimized_coefs, lr=1e-2)
 
-    num_steps = 1000
+    num_steps = 100
+    num_faces = 10
+    num_cameras = 1
     for step in tqdm.tqdm(range(num_steps)):
         arr_coef = [
             shape_coef,
@@ -45,39 +47,53 @@ def recon():
             gamma_coef,
             translation_coef,
         ]
-        coef = torch.cat(arr_coef, 0).unsqueeze(0).repeat(11, 1)
+        coef = torch.cat(arr_coef, 0).unsqueeze(0)      # coef of shape [1, #coef_code]
 
         # reconstruct 3D face with output coefficients and face model
         face_shape, face_texture, face_color, angles, translation, gamma = reconstruction(coef, bfm)
+        face_idx = torch.tensor(bfm.tri, device=device).unsqueeze(0) - 1                    # index in BFM start from 1, we minus 1 here.
 
-        # Use the default intrinsic from Deep3DFaceRecon: https://github.com/microsoft/Deep3DFaceReconstruction/blob/master/demo.py
-        fx = 1015.0
-        fy = 1015.0
-        px = 0.
-        py = 0.
-        intrinsic = (fx, fy, px, py)
-
-        # We test with an extrinsic here
-        R = torch.eye(3, device=device).unsqueeze(0)
-        T = torch.zeros(3, device=device).unsqueeze(0)
-        extrinsic = (R, T)
-
-        # Since the camera model use Rx + T, we want to do some transpotation first, resulting in R (x + T0) + T.
+        # Since the camera model use Rx + T, we want to do some transformation first, resulting in R (x + T0) + T.
         face_shape[:, :, 2] = 10.0 - face_shape[:, :, 2]
 
         # Normalize color space from [0, 255] --> [0, 1]
         face_color = face_color / 255.0
 
-        # Rendering the image
-        images = render_img(face_shape, face_color, bfm, 300, extrinsic, intrinsic)
+        # We test with an extrinsic here
+        R = torch.eye(3, device=device).unsqueeze(0)
+        R[0, 0, 0] *= -1
+        T = torch.zeros(3, device=device).unsqueeze(0)
+        extrinsic = (R, T)
 
+        # Use the default intrinsic from Deep3DFaceRecon:
+        #   https://github.com/microsoft/Deep3DFaceReconstruction/blob/master/demo.py
+        focus_length_in_screen = 1015.0
+        fx = torch.full((num_cameras,), focus_length_in_screen, device=device)
+        fy = torch.full((num_cameras,), focus_length_in_screen, device=device)
+        px = torch.full((num_cameras,), 0., device=device)
+        py = torch.full((num_cameras,), 0., device=device)
+        intrinsic = (fx, fy, px, py)
+
+        # To support multiple cameras, we extend the batch size of the faces.
+        face_shape = face_shape.repeat(num_cameras, 1, 1)
+        face_idx = face_idx.repeat(num_cameras, 1, 1)
+        face_color = face_color.repeat(num_cameras, 1, 1)
+
+        # Rendering the image
+        images = render_img(face_shape, face_idx, face_color, 300, extrinsic, intrinsic, device=device)
+
+        print("Num faces:", num_faces)
+        print("Num cameras:", num_cameras)
+        print("Image shape:", images.shape)
+
+        # Fake loss here.
         loss = images.pow(2).sum()
 
         optim.zero_grad()
         loss.backward()
         optim.step()
 
-    images = images.detach().cpu().numpy()
+    images = images[0].detach().cpu().numpy()
     images = np.squeeze(images)
 
     path_str = "output/optim_test.png"
@@ -90,12 +106,13 @@ def recon():
     img = Image.fromarray(images)
     img.save(path_str)
 
-    face_shape = face_shape.detach().cpu().numpy()
-    face_color = face_color.detach().cpu().numpy()
+    # face_shape = face_shape.detach().cpu().numpy()
+    # face_color = face_color.detach().cpu().numpy()
+    #
+    # face_shape = np.squeeze(face_shape)
+    # face_color = np.squeeze(face_color)
+    # save_obj(path_str + '.obj', face_shape, bfm.tri, np.clip(face_color, 0, 1.0))  # 3D reconstruction face (in canonical view)
 
-    face_shape = np.squeeze(face_shape)
-    face_color = np.squeeze(face_color)
-    save_obj(path_str + '.obj', face_shape, bfm.tri, np.clip(face_color, 0, 1.0))  # 3D reconstruction face (in canonical view)
 
 if __name__ == '__main__':
     recon()

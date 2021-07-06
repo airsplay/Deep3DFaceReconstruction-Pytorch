@@ -12,35 +12,33 @@ from pytorch3d.renderer import (
 import torch
 
 
-def render_img(face_shape, face_color, facemodel, image_size=224, extrinsic=None, intrinsic=None, device='cuda:0'):
+def render_img(face_shape, face_idx, face_color, image_size=224, extrinsic=None, intrinsic=None, device='cuda:0'):
     '''
         ref: https://github.com/facebookresearch/pytorch3d/issues/184
-        The rendering function (just for test)
+        We support the batching over faces and cameras. Here are the three cases:
+            1. #face = 1 and #camera > 1: applying multiple camera to the same face.
+            2. #face > 1 and #camera = 1: applying the same camear to multiple face.
+            3. #face > 1 and #camera = #face: applying each camera[i] to face[i]
         Input:
-            face_shape:  Tensor[1, 35709, 3]
-            face_color: Tensor[1, 35709, 3] in [0, 1]
-            facemodel: contains `tri` (triangles[70789, 3], index start from 1)
-            extrinsic: (R, T); R float tensor of [B, 3, 3]; T float tensor of [B, 3]
+            face_shape:  Tensor[#face, 35709, 3]
+            face_idx: Tensor[#face, 70789, 3]
+            face_color: Tensor[#face, 35709p, 3] in [0, 1]
+            image_size: int. We do not support batching here to allow smooth downstream optimizations.
+            extrinsic: (R, T); R float tensor of [#camera, 3, 3]; T float tensor of [#camera, 3]
+            intrinsic: (fx, fy, px, py): each is a tensor of shape [#camera,].
+                       All use screen coordinates.
+        Returns:
+            images: [B, image_size, image_size, 4] RGBD, ranging from 0 to 1
     '''
-    batch_size = face_shape.shape[0]
-
     face_color = TexturesVertex(verts_features=face_color.to(device))
-    face_buf = torch.from_numpy(facemodel.tri - 1)  # index start from 1
-    face_idx = face_buf.unsqueeze(0).repeat(batch_size, 1, 1)
-
     meshes = Meshes(face_shape.to(device), face_idx.to(device), face_color)
 
-    #R = torch.eye(3).view(1, 3, 3).to(device)
-    #R[0, 0, 0] *= -1.0
-    #T = torch.zeros([1, 3]).to(device)
-
-    R, T = extrinsic
-    fx, fy, px, py = intrinsic
+    R, T = extrinsic                # R: [n, 3, 3], T: [n, 3]
+    fx, fy, px, py = intrinsic      # fx, fy, px, py: torch.tensor[n]
 
     half_size = (image_size - 1.0) / 2
-    focal_length = torch.tensor([fx / half_size, fy / half_size], dtype=torch.float32, device=device).reshape(1, 2)
-    #principal_point = torch.tensor( [(half_size - px) / half_size, (py - half_size) / half_size], dtype=torch.float32, device=device).reshape(1, 2)
-    principal_point = torch.tensor([px / half_size, py / half_size], dtype=torch.float32, device=device).reshape(1, 2)
+    focal_length = torch.stack([fx / half_size, fy / half_size], 1)         # (b,) + (b,) --> (b, 2)
+    principal_point = torch.stack([px / half_size, py / half_size], 1)      # (b,) + (b,) --> (b, 2)
 
     cameras = PerspectiveCameras(
         device=device,

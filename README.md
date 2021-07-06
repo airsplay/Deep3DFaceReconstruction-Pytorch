@@ -50,5 +50,9 @@ python test/recon_test.py
 ```shell
 python test/modeling_test.py
 ```
+3. Test the optimization is possible
+```shell
+python test/optimization_test.py
+```
 
 
