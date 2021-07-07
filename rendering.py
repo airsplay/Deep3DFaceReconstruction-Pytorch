@@ -12,6 +12,38 @@ from pytorch3d.renderer import (
 import torch
 
 
+# Copy from VQGAN+CLIP (z+quantize method).ipynb
+class ReplaceGrad(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, x_forward, x_backward):
+        ctx.shape = x_backward.shape
+        return x_forward
+
+    @staticmethod
+    def backward(ctx, grad_in):
+        return None, grad_in.sum_to_size(ctx.shape)
+
+
+replace_grad = ReplaceGrad.apply
+
+
+class ClampWithGrad(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input, min, max):
+        ctx.min = min
+        ctx.max = max
+        ctx.save_for_backward(input)
+        return input.clamp(min, max)
+
+    @staticmethod
+    def backward(ctx, grad_in):
+        input, = ctx.saved_tensors
+        return grad_in * (grad_in * (input - input.clamp(ctx.min, ctx.max)) >= 0), None, None
+
+
+clamp_with_grad = ClampWithGrad.apply
+
+
 def render_img(face_shape, face_idx, face_color, image_size=224, extrinsic=None, intrinsic=None, device='cuda:0'):
     '''
         ref: https://github.com/facebookresearch/pytorch3d/issues/184
@@ -78,7 +110,7 @@ def render_img(face_shape, face_idx, face_color, image_size=224, extrinsic=None,
     )
     images = renderer(meshes)
 
-    # TODO: There would be no gradient if clamp works.
-    images = torch.clamp(images, 0.0, 1.0)
+    # images = torch.clamp(images, 0.0, 1.0)
+    images = clamp_with_grad(images, 0.0, 1.0)
 
     return images

@@ -27,6 +27,7 @@ pip install pytorch3d
 ```
 
 
+
 2. Download BFM at [link](https://faces.dmi.unibas.ch/bfm/main.php?nav=1-2&id=downloads), put "01_MorphableModel.mat" into ./BFM subfolder. 
 
 3. Download Expression Basis by Guo et al. at [link](https://github.com/Juyong/3DFace). Download the "CoarseData" link. Put "Exp_Pca.bin" into ./BFM subfolder.
@@ -38,6 +39,12 @@ pip install pytorch3d
 cd BFM
 wget https://github.com/anilbas/3DMMasSTN/blob/master/util/BFM_UV.mat?raw=true -O BFM_UV.mat
 cd ..
+```
+6. install CLIP
+```shell
+pip install ftfy regex tqdm
+# Do not upgrade PyTorch version so PyTorch3D would work:
+pip install --no-deps git+https://github.com/openai/CLIP.git  
 ```
 
 

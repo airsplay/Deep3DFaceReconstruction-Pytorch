@@ -124,7 +124,7 @@ def compute_rotation_matrix(angles):
             torch.reshape(torch.sin(angles[:, 0]), [n_b, 1]),
             torch.reshape(torch.cos(angles[:, 0]), [n_b, 1])
         ],
-        axis=1
+        dim=1
     )
     rotation_Y = torch.cat(
         [
@@ -138,7 +138,7 @@ def compute_rotation_matrix(angles):
             torch.zeros([n_b, 1]).to(device),
             torch.reshape(torch.cos(angles[:, 1]), [n_b, 1]),
         ],
-        axis=1
+        dim=1
     )
     rotation_Z = torch.cat(
         [
@@ -150,7 +150,7 @@ def compute_rotation_matrix(angles):
             torch.zeros([n_b, 3]).to(device),
             torch.ones([n_b, 1]).to(device),
         ],
-        axis=1
+        dim=1
     )
 
     rotation_X = rotation_X.reshape([n_b, 3, 3])
@@ -219,6 +219,7 @@ def rigid_transform(face_shape, rotation, translation):
     face_shape_r = face_shape.bmm(rotation)  # R has been transposed
     face_shape_t = face_shape_r + translation.view(n_b, 1, 3)
     return face_shape_t
+
 
 
 def reconstruction(coeff, facemodel):

@@ -31,3 +31,5 @@ def process_uv(uv_coords):
     # uv_coords[:, 1] = uv_h - uv_coords[:, 1] - 1
     uv_coords = np.hstack((uv_coords, np.ones((uv_coords.shape[0], 1))))   # add z
     return uv_coords
+
+
