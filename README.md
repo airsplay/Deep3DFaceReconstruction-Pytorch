@@ -7,10 +7,11 @@
    pip install torch==1.7.0+cu101 torchvision==0.8.0 -f https://download.pytorch.org/whl/torch_stable.html
    pip install pytorch3d -f https://dl.fbaipublicfiles.com/pytorch3d/packaging/wheels/py36_cu101_pyt170/download.html
    ```
-If the CUDA version does not match, we could change the `torch==1.7.0+cu101` to
-  - `torch==1.7.0` for CUDA 10.0
-  - `torch==1.7.0+cu110` for CUDA 11.0.
-  - `torch==1.7.0+cu92` for CUDA 9.2 
+    If the CUDA version does not match, we could change the `torch==1.7.0+cu101` to
+      - `torch==1.7.0` for CUDA 10.0
+      - `torch==1.7.0+cu110` for CUDA 11.0.
+      - `torch==1.7.0+cu92` for CUDA 9.2 
+    
     If all above  do not work, directly compile pytorch3d with latest PyTorch (need [Nvidia/cub](https://github.com/NVIDIA/cub))
    ```
    pip install -r requirements.txt

@@ -20,6 +20,7 @@ from bfmface.html_converter import dump_html
 def recon():
     parser = argparse.ArgumentParser()
     parser.add_argument("--prompt", "-p", default="an angry man | real human")
+    parser.add_argument("--optim-steps", type=int, default=1000)
     args = parser.parse_args()
 
     # read BFM face model
@@ -52,7 +53,7 @@ def recon():
     reg_weight = 0.1
     # regularizer = L2Regularizer(optimized_coefs)
 
-    num_steps = 4000
+    num_steps = args.optim_steps
     image_size = 224
     print("Use prompt:", args.prompt)
     for step in tqdm.tqdm(range(num_steps)):
