@@ -31,5 +31,10 @@ If the CUDA version does not match, we could change the `torch==1.7.0+cu101` to
 
 ## Running
 ```shell
-python bfmface/main.py -p "Abraham Lincoln with a big mouse | real human"
+python bfmface/main.py -p "an angry man | real human"
 ```
+The suffix `| real human` is used to control the characteristics of the generated model.
+O.w., the rendered images would not like a real face. It could be changed to enable styles.
+
+For viewing results, the images are dumped to `output/`.
+An HTML copy of the results are uploaded to the UNC CS public server at "https://www.cs.unc.edu/~airsplay/results.html", replace `airsplay` with your UNC CS id.

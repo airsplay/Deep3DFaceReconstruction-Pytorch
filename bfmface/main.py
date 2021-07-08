@@ -42,7 +42,7 @@ def recon():
         shape_coef,
         exp_coef,
         texture_coef,
-    ]           # We only optimize the shape and texture coefficients.
+    ]           # We only optimize the shape, expression, and texture coefficients.
     for coef in optimized_coefs:
         coef.requires_grad = True
     optim = Adam(optimized_coefs, lr=5e-3)
@@ -52,7 +52,7 @@ def recon():
     reg_weight = 0.1
     # regularizer = L2Regularizer(optimized_coefs)
 
-    num_steps = 1000
+    num_steps = 4000
     image_size = 224
     print("Use prompt:", args.prompt)
     for step in tqdm.tqdm(range(num_steps)):
@@ -72,16 +72,18 @@ def recon():
         face_color = face_color / 255.0             # Normalize color space from [0, 255] --> [0, 1]
 
         # Camera extrinsics
+        #   We capture the face with *multiple cameras* so that the images are consistent across different views.
+        #   Please make sure that psi_samples and theta_sampled are odd numbers so that the centering camera is used.
         psi_range = math.pi / 6
         psi_samples = 5
         theta_range = math.pi / 6
         theta_samples = 5
-        psi = torch.linspace(-psi_range, psi_range, psi_samples, device=device)
-        theta = torch.linspace(-theta_range, theta_range, theta_samples, device=device)
+        psi = torch.linspace(-psi_range, psi_range, psi_samples, device=device)     # The samples of psi angles
+        theta = torch.linspace(-theta_range, theta_range, theta_samples, device=device) # The samples of theta angles.
         num_cameras = psi_samples * theta_samples
         phi = torch.zeros(1, device=device)
         euler = torch.cartesian_prod(psi, theta, phi)
-        camera_direction = compute_rotation_matrix(euler)
+        # camera_direction = compute_rotation_matrix(euler)
         camera_distance = 10.
         R_y_flip = torch.tensor(
             [[-1, 0, 0],
@@ -110,7 +112,7 @@ def recon():
         py = torch.full((num_cameras,), 0., device=device)
         intrinsic = (fx, fy, px, py)
 
-        # To support multiple cameras, we extend the batch size of the faces.
+        # To support multiple cameras, we expand the same face to the number of cameras.
         face_shape = face_shape.repeat(num_cameras, 1, 1)
         face_idx = face_idx.repeat(num_cameras, 1, 1)
         face_color = face_color.repeat(num_cameras, 1, 1)
@@ -122,6 +124,7 @@ def recon():
             print("Num cameras:", num_cameras)
             print("Image shape:", images.shape)
 
+        # The loss compute the matching score between the images and the language prompt
         loss = criterion(images[..., :3])
 
         optim.zero_grad()
