@@ -1,5 +1,7 @@
 import sys
 sys.path.append(".")
+
+import argparse
 import os
 import math
 
@@ -8,12 +10,18 @@ import torch
 from torch.optim import Adam
 import tqdm
 
-from load_data import transfer_BFM09, BFM, load_img, Preprocess, save_obj
-from modeling_3d import reconstruction, compute_rotation_matrix
-from loss import ClipLoss
-from rendering import render_img
+from bfmface.load_data import transfer_BFM09, BFM
+from bfmface.modeling_3d import reconstruction, compute_rotation_matrix
+from bfmface.loss import ClipLoss
+from bfmface.rendering import render_img
+from bfmface.html_converter import dump_html
+
 
 def recon():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--prompt", "-p", default="an angry man | real human")
+    args = parser.parse_args()
+
     # read BFM face model
     # transfer original BFM model to our model
     if not os.path.isfile('BFM/BFM_model_front.mat'):
@@ -32,15 +40,21 @@ def recon():
     # Optimization Setup
     optimized_coefs = [
         shape_coef,
-    ]
+        exp_coef,
+        texture_coef,
+    ]           # We only optimize the shape and texture coefficients.
     for coef in optimized_coefs:
         coef.requires_grad = True
-    optim = Adam(optimized_coefs, lr=1e-2)
+    optim = Adam(optimized_coefs, lr=5e-3)
 
-    criterion = ClipLoss(prompt="human face").to(device)
+    # Loss and regularizations
+    criterion = ClipLoss(prompt=args.prompt).to(device)
+    reg_weight = 0.1
+    # regularizer = L2Regularizer(optimized_coefs)
 
     num_steps = 1000
     image_size = 224
+    print("Use prompt:", args.prompt)
     for step in tqdm.tqdm(range(num_steps)):
         arr_coef = [
             shape_coef,
@@ -59,9 +73,9 @@ def recon():
 
         # Camera extrinsics
         psi_range = math.pi / 6
-        psi_samples = 3
-        theta_range = math.pi / 3
-        theta_samples = 3
+        psi_samples = 5
+        theta_range = math.pi / 6
+        theta_samples = 5
         psi = torch.linspace(-psi_range, psi_range, psi_samples, device=device)
         theta = torch.linspace(-theta_range, theta_range, theta_samples, device=device)
         num_cameras = psi_samples * theta_samples
@@ -87,6 +101,8 @@ def recon():
 
         # Use the default intrinsic from Deep3DFaceRecon:
         #   https://github.com/microsoft/Deep3DFaceReconstruction/blob/master/demo.py
+        #   Note: to support CLIP, we change the image_size from 300 to 224.
+        #         Thus the focus length in 3D space would be different (1015 / 224 instead of 1015 / 300)
         focus_length_in_screen = 1015.0
         fx = torch.full((num_cameras,), focus_length_in_screen, device=device)
         fy = torch.full((num_cameras,), focus_length_in_screen, device=device)
@@ -106,26 +122,29 @@ def recon():
             print("Num cameras:", num_cameras)
             print("Image shape:", images.shape)
 
-        # Fake loss here.
-        # loss = images.pow(2).sum()
         loss = criterion(images[..., :3])
 
         optim.zero_grad()
         loss.backward()
         optim.step()
 
-
+    # Save images
+    img_paths = []
     for i, image in enumerate(images.detach().cpu().numpy()):
-
         path_str = f"output/multi_camera_test_view{i:02}.png"
-        path = os.path.split(path_str)[0]
-        if os.path.exists(path) is False:
-            os.makedirs(path)
+        img_paths.append(path_str)
+
+        path_dir = os.path.split(path_str)[0]
+        if os.path.exists(path_dir) is False:
+            os.makedirs(path_dir)
 
         from PIL import Image
         image = np.uint8(image[:, :, :3] * 255.0)
         img = Image.fromarray(image)
         img.save(path_str)
+
+    # It is available at https://www.cs.unc.edu/~airsplay/results.html
+    dump_html(img_paths, "results.html")
 
     # face_shape = face_shape.detach().cpu().numpy()
     # face_color = face_color.detach().cpu().numpy()

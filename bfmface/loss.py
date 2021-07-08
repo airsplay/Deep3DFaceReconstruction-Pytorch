@@ -49,3 +49,10 @@ class ClipLoss(nn.Module):
         # Copy from VQGAN+CLIP (z+quantize method).ipynb
         dists = (image_features.unsqueeze(0) - self.text_features.unsqueeze(1)).norm(dim=-1).div(2).arcsin().pow(2).mul(2)
         return dists.mean()
+
+
+class L2Regularizer(nn.Module):
+    def forward(self, optimized_coef):
+        torch.cat(optimized_coef)
+
+
