@@ -3,6 +3,7 @@ from pytorch3d.renderer.mesh.textures import TexturesVertex
 from pytorch3d.renderer import (
     PerspectiveCameras,
     PointLights,
+    DirectionalLights,
     RasterizationSettings,
     MeshRenderer,
     MeshRasterizer,
@@ -86,12 +87,21 @@ def render_img(face_shape, face_idx, face_color, image_size=224, extrinsic=None,
         faces_per_pixel=1
     )
 
-    lights = PointLights(
+    # lights = PointLights(
+    #     device=device,
+    #     ambient_color=((1.0, 1.0, 1.0),),
+    #     diffuse_color=((0.0, 0.0, 0.0),),
+    #     specular_color=((0.0, 0.0, 0.0),),
+    #     location=((0.0, 0.0, -10),)
+    # )
+
+    lights = DirectionalLights(
         device=device,
         ambient_color=((1.0, 1.0, 1.0),),
         diffuse_color=((0.0, 0.0, 0.0),),
         specular_color=((0.0, 0.0, 0.0),),
-        location=((0.0, 0.0, 1e5),)
+        # # location=((0.0, 0.0, -1e5),)
+        direction=((0, 0, 1),)
     )
 
     blend_params = BlendParams(background_color=(0.0, 0.0, 0.0))

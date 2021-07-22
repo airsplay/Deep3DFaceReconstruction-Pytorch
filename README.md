@@ -39,3 +39,9 @@ O.w., the rendered images would not like a real face. It could be changed to ena
 
 For viewing results, the images are dumped to `output/`.
 An HTML copy of the results are uploaded to the UNC CS public server at "https://www.cs.unc.edu/~airsplay/results.html", replace `airsplay` with your UNC CS id.
+
+
+## New command
+```shell
+python bfmface/main_single_camera.py -p "an angry man" -c 25 --steps 4000 --l2-reg 1e-5 --html an_angry_man_zn10 --cuda 0
+```

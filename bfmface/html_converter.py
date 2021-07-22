@@ -60,6 +60,7 @@ def dump_html(img_paths, html_name, reversed=True, move_to_home=True):
             )
 
 
+
 if __name__ == "__main__":
     for snap_name in os.listdir("snap"):
         dump_html(f"snap/{snap_name}")
