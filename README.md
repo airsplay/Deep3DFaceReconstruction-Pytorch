@@ -18,6 +18,14 @@
    pip install torch
    pip install "git+https://github.com/facebookresearch/pytorch3d.git@stable"
    ```
+   If using Anaconda, please follow the instruction here
+   ```
+   conda create -n pytorch3d python=3.8
+   conda activate pytorch3d
+   conda install -c pytorch pytorch=1.7.1 torchvision cudatoolkit=10.2
+   conda install -c fvcore -c iopath -c conda-forge fvcore iopath
+   conda install scipy
+   ```
 2. Download the front-face BFM model (already preprocessed)
    ```shell
    wget https://nlp.cs.unc.edu/data/BFM_model_front.mat -P BFM/ 
